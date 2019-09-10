@@ -1,0 +1,178 @@
+#define b1p 2 //button 1 pin
+
+#define b2p 3 //button 2 pin
+
+#define mdp 4 // mic digital pin
+
+#define rp 5 // relay pin
+
+#define rlp 6 // Red led pin
+
+#define glp 7 // Green led pin
+
+#define blp 8 // Blue led pin
+
+#define Map A0 // mic analog pin
+
+#define ap A1 // Alchol pin
+
+
+
+int button1_val,button2_val,mic_digital_val,mic_analog_val,alchol_val; //bval_1 button1, bval_2 button 2,mdval- mic didgital,maval-mic analog,aval-alchol 
+
+/*Library files */
+
+#include<String.h>
+
+#define BLYNK_PRINT Serial
+
+#include <ESP8266_Lib.h>
+
+#include <BlynkSimpleShieldEsp8266.h>
+
+BlynkTimer timer;
+
+#define EspSerial Serial
+
+#define ESP8266_BAUD 115200
+
+ESP8266 wifi(&EspSerial);
+
+/*wifi credentials*/
+
+char auth[] = "s7qr4bk5tmXFg4u1pDidTE1VLJGKWsFO";
+
+char ssid[] = "leap robots";
+
+char pass[] = "robochamps";
+
+
+
+void setup()
+
+{
+
+ Serial.begin(115200); 
+
+ pinMode(b1p,INPUT);// button 1
+
+ pinMode(b2p,INPUT);//  button 2
+
+ pinMode(mdp,INPUT);//  mic digital
+
+ pinMode(rp,OUTPUT);// relay
+
+ pinMode(rlp,OUTPUT); // red led
+
+ pinMode(glp,OUTPUT); // green led
+
+ pinMode(blp,OUTPUT); //
+
+ pinMode(Map,INPUT);//button1
+
+ pinMode(ap,INPUT);//button2
+
+ digitalWrite(rlp,LOW);
+
+ digitalWrite(glp,LOW);
+
+ digitalWrite(blp,LOW);
+
+ digitalWrite(rp,LOW);
+
+ //wifi module
+
+ EspSerial.begin(ESP8266_BAUD);
+
+ delay(10);
+
+ Blynk.begin(auth, wifi, ssid, pass);
+
+ Blynk.email("peethanivsp@gmail.com"," notification", "IOT service started ");
+
+ Blynk.notify("IOT service started");
+
+ Blynk.tweet("IOT service started");
+
+ timer.setInterval(1000L, sendSensor);
+
+}
+
+void sendSensor()
+
+{
+
+ mic_analog_val=analogRead(Map); //mic analog
+
+ Serial.println(mic_analog_val);
+
+ mic_digital_val=digitalRead(mdp); //mic digital 
+
+ Serial.println("mic digital val:"+String(mic_digital_val));
+
+ Blynk.virtualWrite(V1,mic_digital_val); // mic digital value to blynk server
+
+ alchol_val=analogRead(ap); // alchol
+
+ Blynk.virtualWrite(V2,alchol_val); // alchol valueto blynk server
+
+ Serial.println("alchol value:"+String(alchol_val));
+
+ Serial.println("Waiting for breath test");
+
+ while(mic_digital_val == 1 )
+
+ {
+
+  Serial.println("breath test done");
+
+  digitalWrite(rlp,HIGH);// breath test done green led
+
+  if(alchol_val <= 470)
+
+  {
+
+   digitalWrite(glp,HIGH);// ALCOHOL TEST DONE INDICATION green led
+
+   digitalWrite(rp,HIGH);//relay ON
+
+   button1_val=digitalRead(b1p);
+
+   button2_val=digitalRead(b2p);
+
+   if(button1_val == 1 || button2_val == 1)
+
+   {
+
+    Blynk.email("peethanivsp@gmail.com", "Crash alert", " car is crashed ");
+
+    Blynk.notify("car is crashed");
+
+    Blynk.tweet("car is crashed");
+
+   }
+
+  }
+
+  else
+
+  {
+
+   digitalWrite(rlp,LOW); // relay OFF
+
+   digitalWrite(glp,LOW); // green led off
+
+   Blynk.email("peethanivsp@gmail.com", "alcohol alert", " over drunk, engine off ");
+
+   Blynk.notify("over drunk, engine off");
+
+   Blynk.tweet("over drunk, engine off");
+  }
+ }
+}
+
+void loop()
+{
+  Blynk.run();
+  timer.run();
+}
